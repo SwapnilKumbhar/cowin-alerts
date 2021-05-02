@@ -3,21 +3,35 @@ from datetime import datetime
 from pprint import pprint  # Only for debugging
 from time import sleep
 
-#### Authentication constants
-#### Timeout
+# Authentication constants
+# Timeout
 TIMEOUT = 180
 AUTH_TOKEN = ""  # Add your token here
 
-#### State, District code, etc. constants
+# State, District code, etc. constants
 ASETU_DISTRICTS = {"mumbai": 395}
 
-#### API Endpoits
+# Webhook URLs per district
+WEBHOOKS = {"mumbai":""}
+
+# API Endpoits
 ASETU_PRODUCTION_SERVER = "https://cdn-api.co-vin.in/api"  # This may change anytime
 
 ASETU_CALENDAR_BY_DISTRICT = "/v2/appointment/sessions/calendarByDistrict"
 ASETU_CALENDAR_BY_PINCODE = "/v2/appointment/sessions/calendarByPincode"
 
-#### helper
+# Less than total 10 slots in a day
+RED_ALERT = "7798804"
+
+# Total 10-40 slots in a day
+AMBER_ALERT = "16760576"
+
+# More than total 40 slots in a day
+GREEN_ALERT = "3066993"
+
+# helper
+
+
 def currentDate():
     return datetime.today().strftime("%d-%m-%Y")
 
@@ -63,9 +77,61 @@ def findCentersForDistrict(district_id):
     filteredData = filterCenters(allData)
     return filteredData
 
+def alertDiscord(centers, district):
+    sessions = {}
+    sessionSlots = {}
 
-def alertDiscord(data):
-    pprint(data)
+    for center in centers:
+        for session in center["sessions"]:
+
+            centerName = center["name"]
+            availableCapacity = session["available_capacity"]
+            pincode = center["pincode"]
+            minAge = session["min_age_limit"]
+            feeType = center["fee_type"]
+            currentDescription = ""
+            currentSlots = 0
+
+            if(session["date"] in sessions.keys()):
+                currentDescription = sessions[session["date"]]
+                currentSlots = sessionSlots[session["date"]]
+
+            currentDescription = f"""{currentDescription}Hospital Name: **{centerName}**,
+            Slots: **{availableCapacity}**,
+            Pincode: **{pincode}**,
+            Min age: **{minAge}**,
+            Fee type: **{feeType}**
+            ------------------------------------------------
+            """
+            currentSlots = currentSlots + availableCapacity
+
+            sessions[session["date"]] = currentDescription
+            sessionSlots[session["date"]] = currentSlots
+
+    for date, session in sessions.items():
+        print(f"Sending alerts for date {date}...")
+
+        totalSlots = sessionSlots[date]
+        if(totalSlots < 10):
+            currentColor = RED_ALERT
+        elif(10 <= totalSlots < 40):
+            currentColor = AMBER_ALERT
+        else:
+            currentColor = GREEN_ALERT
+
+        requests.post(
+            WEBHOOKS[district],
+            json={
+                "content": f"@{district}",
+                "embeds": [
+                    {
+                        "title": f"Total slots: {totalSlots} for {date}",
+                        "description": session,
+                        "color": currentColor
+                    }
+                ]
+            }
+        )
 
 
 if __name__ == "__main__":
@@ -75,8 +141,7 @@ if __name__ == "__main__":
             print(f"[+] Finding centers for district: {district}")
             filteredData = findCentersForDistrict(districtId)
             if filteredData is not None:
-                pass  # Temporary
-                # alertDiscord(filteredData)
+                alertDiscord(filteredData, district)
 
         # We sleep for some time
         sleep(TIMEOUT)
