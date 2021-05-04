@@ -3,3 +3,7 @@
 
 # Research files
 Covid.txt
+
+/vax-alert-bot/.env
+
+/vax-alert-bot/node_modules
