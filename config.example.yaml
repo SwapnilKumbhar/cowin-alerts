@@ -1,0 +1,39 @@
+core:
+  auth_token: "<YOUR_TOKEN_HERE>" # We miiiight not need this.
+  api:
+    base: "https://cdn-api.co-vin.in"     # Production server
+    endpoints:
+      calendarByDistrict: "/api/v2/appointment/sessions/calendarByDistrict"
+  timeout: 20             # How often should we query
+
+districts: # One block per city, city name is the key
+  mumbai:
+    id: 395
+    discord:
+      role_id: "<@&838492270801241244>" # Discord role ID
+      webhooks: # Hooks for different channels
+        district: "https://discord.com/api/webhooks/..."
+        pincode: "" 
+    filters: # Filters by entire district, exact and partial pincodes
+      district: true
+      pincode:
+        enabled: true
+        starts_with:
+          - 400
+        exact:
+          - 400056
+          - 400058
+  pune:
+    id: 363
+    discord:
+      role_id: "<@&83861142491123124>"
+      webhooks:
+        district: "https://discord.com/api/webhooks/..."
+        pincode: ""
+    filters:
+      district: true
+      pincode:
+        enabled: false
+        starts_with:
+        exact:
+  
