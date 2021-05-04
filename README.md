@@ -4,4 +4,5 @@ A simple script to retrieve a list of Vaccination Centers in a certain district 
 
 ## TODOs
 
-- Move configurations to YAML
+- [x] Move configurations to YAML
+- [ ] Make code more segregated
