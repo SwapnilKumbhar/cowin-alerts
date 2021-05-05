@@ -80,6 +80,8 @@ def getCalendarByDistrict(district_id):
     try:
         r = requests.get(url, headers=headers, params=parameters)
         # Return well formed dictionary
+        if len(r.json()) == 0:
+            return None
         return r.json()
     except Exception as e:
         # Alert Swapnil/Pooja that code broke!
