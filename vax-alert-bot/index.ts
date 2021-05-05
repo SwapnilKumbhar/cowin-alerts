@@ -55,8 +55,8 @@ function manageSubscription(message: Message) {
     if (!subscription.startsWith("*") && !subscription.startsWith("+") && !subscription.startsWith("-")) {
         message.reply(`To create/check a district please enter district name starting with * for example *${subscription}\nTo subscribe to this district's alerts please enter district name starting with + for example +${subscription}\nTo be removed from this district's subscription, please enter district name starting with ! for example !${subscription}`)
     } else {
-        let districtName = subscription.substring(1).trim()
-        let district: District = checkDistrict(districtName)
+        const districtName = subscription.substring(1).trim()
+        const district: District = checkDistrict(districtName)
         if (district === null) {
             message.reply(`no such district:  ${districtName}`)
         } else {
@@ -69,7 +69,7 @@ function manageSubscription(message: Message) {
                 } else {
                     checkAndCreateRole(message, districtName.toLowerCase())
                 }
-            } else if (subscription.startsWith("-")) {
+            } else if (subscription.startsWith("!")) {
                 checkAndRemoveRole(message, districtName.toLowerCase())
             }
         }

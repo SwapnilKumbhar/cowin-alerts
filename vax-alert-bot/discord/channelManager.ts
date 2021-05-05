@@ -1,10 +1,12 @@
 import { CategoryChannel, Channel, Guild, GuildChannel, Message, TextChannel } from "discord.js";
 import { District } from "../types";
+import { everyoneRoleID } from "./roleManager";
 
 let alertChannels: TextChannel[] = []
 export let districtsListChannelID: string = ""
-let errorAlertsChannelID: string = ""
+export let errorAlertsChannelID: string = ""
 export let newDistrictsChannelID: string = ""
+export let generalChannelID: string = ""
 
 export function loadChannels(server: Guild) {
     let channels = server.channels.cache.array();
@@ -19,6 +21,8 @@ export function loadChannels(server: Guild) {
             errorAlertsChannelID = channel.id
         } else if (channel.name === "new-districts") {
             newDistrictsChannelID = channel.id
+        } else if (channel.name === "general") {
+            generalChannelID = channel.id
         }
     }
 }
@@ -38,11 +42,11 @@ export function manageChannel(message: Message, district: District) {
             .then(async (channel: TextChannel) => {
                 alertChannels.push(channel)
                 setChannelUnderAlertsCategory(channel, server)
-                
+
                 let notifyNewDistrictsMessage: string = `${message.author.username} created a new channel <#${channel.id}>\nDistrict ID: ${district.district_id}`
 
                 const webhookURL = await createWebHookAndGetURL(channel, districtName)
-                if(webhookURL != null) {
+                if (webhookURL != null) {
                     notifyNewDistrictsMessage += `\nWebhook URL: ${webhookURL}`
                 } else {
                     notifyNewDistrictsMessage += "\nWebhook creation failed! Please create it manually"
@@ -75,7 +79,7 @@ export function checkChannelAndGetID(districtName: string) {
 }
 
 function setChannelUnderAlertsCategory(channel: TextChannel, server: Guild) {
-    const category: GuildChannel = server.channels.cache.find(c => c.name.toLowerCase() === "devs-only" && c.type === "category");
+    const category: GuildChannel = server.channels.cache.find(c => c.name.toLowerCase() === "alerts" && c.type === "category");
     if (!category) {
         throw new Error("Alerts category channel does not exist");
     }
