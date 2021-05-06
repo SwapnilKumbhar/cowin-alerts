@@ -1,27 +1,29 @@
-import { CategoryChannel, Channel, Guild, GuildChannel, Message, TextChannel } from "discord.js";
-import { District } from "../types";
-import { everyoneRoleID } from "./roleManager";
+import { CategoryChannel, Guild, GuildChannel, Message, TextChannel } from "discord.js";
+import { District } from "../config/types";
+require('dotenv').config({ path: '../config/.env' });
 
 let alertChannels: TextChannel[] = []
 export let districtsListChannelID: string = ""
 export let errorAlertsChannelID: string = ""
 export let newDistrictsChannelID: string = ""
 export let generalChannelID: string = ""
+let alertsCategoryChannelID: string = ""
 
 export function loadChannels(server: Guild) {
     let channels = server.channels.cache.array();
     for (const channel of channels) {
-        if (channel.type === "category" && channel.name === "alerts") {
+        if (channel.type === "category" && channel.name === process.env.ALERTS_CATEGORY) {
             const categoryChannel = <CategoryChannel>channel
             alertChannels = <TextChannel[]>categoryChannel.children.array()
+            alertsCategoryChannelID = channel.id
         }
-        if (channel.name === "districts-list") {
+        if (channel.name === process.env.DISTRICTS_LIST) {
             districtsListChannelID = channel.id
-        } else if (channel.name === "error-alerts") {
+        } else if (channel.name === process.env.ERROR_ALERTS) {
             errorAlertsChannelID = channel.id
-        } else if (channel.name === "new-districts") {
+        } else if (channel.name === process.env.NEW_DISTRICTS) {
             newDistrictsChannelID = channel.id
-        } else if (channel.name === "general") {
+        } else if (channel.name === process.env.GENERAL) {
             generalChannelID = channel.id
         }
     }
@@ -41,7 +43,7 @@ export function manageChannel(message: Message, district: District) {
             })
             .then(async (channel: TextChannel) => {
                 alertChannels.push(channel)
-                setChannelUnderAlertsCategory(channel, server)
+                channel.setParent(alertsCategoryChannelID)
 
                 let notifyNewDistrictsMessage: string = `${message.author.username} created a new channel <#${channel.id}>\nDistrict ID: ${district.district_id}`
 
@@ -76,14 +78,6 @@ export function checkChannelAndGetID(districtName: string) {
         }
     }
     return null
-}
-
-function setChannelUnderAlertsCategory(channel: TextChannel, server: Guild) {
-    const category: GuildChannel = server.channels.cache.find(c => c.name.toLowerCase() === "alerts" && c.type === "category");
-    if (!category) {
-        throw new Error("Alerts category channel does not exist");
-    }
-    channel.setParent(category.id);
 }
 
 async function createWebHookAndGetURL(channel: TextChannel, districtName: string): Promise<string> {
