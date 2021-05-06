@@ -6,3 +6,8 @@ Covid.txt
 
 # Real configuration
 config.yaml
+
+/vax-alert-bot/node_modules
+
+/vax-alert-bot/config/.env
+/vax-alert-bot/config/.env.uat

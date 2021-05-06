@@ -1,0 +1,28 @@
+{
+  "name": "cowin-alerts",
+  "version": "1.0.0",
+  "description": "A simple script to retrieve a list of Vaccination Centers in a certain district or (soon) pincode.",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SwapnilKumbhar/cowin-alerts.git"
+  },
+  "author": "Pooja Kulkarni, Swapnil Kumbhar",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SwapnilKumbhar/cowin-alerts/issues"
+  },
+  "homepage": "https://github.com/SwapnilKumbhar/cowin-alerts#readme",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "discord.js": "^12.5.3",
+    "dotenv": "^8.2.0",
+    "request": "^2.88.2"
+  },
+  "devDependencies": {
+    "ts-node": "^9.1.1"
+  }
+}
