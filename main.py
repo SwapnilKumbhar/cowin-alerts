@@ -4,6 +4,7 @@ from pprint import pprint  # Only for debugging
 from time import sleep
 import traceback
 from yaml import safe_load
+from pytz import timezone
 
 #### Load configs. This **cannot** fail.
 #### TODO: Add schema validation
@@ -67,12 +68,13 @@ GREEN_ALERT = "3066993"
 
 # helper
 def currentDate():
-    return datetime.today().strftime("%d-%m-%Y")
+    return datetime.now(timezone("Asia/Kolkata")).strftime("%d-%m-%Y")
 
 
 def getCalendarByDistrict(district_id):
     headers = {
         "authorization": f"Bearer {AUTH_TOKEN}",
+        "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
     }
     url = f"{ASETU_PRODUCTION_SERVER}{ASETU_CALENDAR_BY_DISTRICT}"
     date = currentDate()
@@ -165,6 +167,7 @@ def alertDiscord(centers, district, hook):
             pincode = center["pincode"]
             minAge = session["min_age_limit"]
             feeType = center["fee_type"]
+            vaccine = session["vaccine"]
             currentDescription = ""
             currentSlots = 0
 
@@ -177,6 +180,7 @@ def alertDiscord(centers, district, hook):
             Pincode: **{pincode}**,
             Min age: **{minAge}**,
             Fee type: **{feeType}**
+            Vaccine: **{vaccine}**
             ------------------------------------------------
             """
             currentSlots = currentSlots + availableCapacity
@@ -214,9 +218,10 @@ if __name__ == "__main__":
     while True:
         # Loop forever
         print(f"---- Trying at: {datetime.now()} ----")
-        try:
-            for district, districtId in ASETU_DISTRICTS.items():
-                print(f"[+] Finding centers for district: {district}")
+        for district, districtId in ASETU_DISTRICTS.items():
+            sleep(0.2)
+            print(f"[+] Finding centers for district: {district}")
+            try:
                 filteredData, filteredPincodeData = findCentersForDistrict(
                     district, districtId
                 )
@@ -228,9 +233,9 @@ if __name__ == "__main__":
                     alertDiscord(
                         filteredPincodeData, district, DISCORD_PIN_WEBHOOKS[district]
                     )
-        except Exception as e:
-            print(f"Something broke in the outer loop: {e}")
-            traceback.print_exc()
-
-        # We sleep for some time
+            except Exception as e:
+                print("[!] Something went wrong in the outer loop.")
+                print("[!] Skipping...")
+                traceback.print_exc()
+            # We sleep for some time
         sleep(TIMEOUT)
