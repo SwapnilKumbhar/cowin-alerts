@@ -1,10 +1,10 @@
 import { Client, Message, TextChannel } from 'discord.js';
 import axios from 'axios'
 import { District, State } from './config/types';
-import { manageChannel, loadChannels, checkChannelAndGetID, districtsListChannelID } from './discord/channelManager';
-import { checkAndCreateRole, checkAndRemoveRole, loadRoles } from './discord/roleManager';
+import { createChannel, loadChannels, checkChannelAndGetID, newDistrictsChannelID, addRoleToChannel } from './discord/channelManager';
+import { createRole, checkAndRemoveRole, loadRoles, checkRoleAndGetID, checkRoleOnUser, setRoleToMember, adminsID } from './discord/roleManager';
 
-require('dotenv').config({ path: './config/.env' });
+require('dotenv').config({ path: './config/.env.uat' });
 
 const client = new Client();
 let districts: District[] = []
@@ -57,25 +57,59 @@ function checkDistrict(districtName: string): District {
     return finalDistrict
 }
 
-function manageSubscription(message: Message) {
+async function manageSubscription(message: Message) {
     const subscription = message.content
-    if (!subscription.startsWith("*") && !subscription.startsWith("+") && !subscription.startsWith("-")) {
-        message.reply(`To create/check a district please enter district name starting with * for example *${subscription}\nTo subscribe to this district's alerts please enter district name starting with + for example +${subscription}\nTo be removed from this district's subscription, please enter district name starting with - for example -${subscription}`)
+    if (!subscription.startsWith("+") && !subscription.startsWith("-")) {
+        message.reply(`To subscribe to this district's alerts please enter district name starting with + for example +${subscription}\nTo be removed from this district's subscription, please enter district name starting with - for example -${subscription}`)
     } else {
         const districtName = subscription.substring(1).trim()
         const district: District = checkDistrict(districtName)
         if (district === null) {
             message.reply(`no such district:  ${districtName}`)
         } else {
-            if (subscription.startsWith("*")) {
-                manageChannel(message, district)
-            } else if (subscription.startsWith("+")) {
-                const channelID: string = checkChannelAndGetID(districtName.toLowerCase())
+            if (subscription.startsWith("+")) {
+                let channelID: string = checkChannelAndGetID(districtName.toLowerCase())
+                let roleID: string = checkRoleAndGetID(districtName.toLowerCase())
                 if (channelID === null) {
-                    message.reply(`no channel currently exists for district ${districtName}.\nPlease create a channel first by typing *${districtName} and then subscribe yourself to this district using +${districtName}\nTo get the list of currently available channels, check <#${districtsListChannelID}>`)
+                    let newChannelMessage: string = await createChannel(message, district)
+                    let newRoleValues: string[] = await createRole(message, districtName.toLowerCase());
+                    const newRoleMessage: string = newRoleValues[0]
+                    const roleID: string = newRoleValues[1]
+
+                    if (newChannelMessage !== undefined && newRoleMessage !== undefined) {
+                        channelID = checkChannelAndGetID(districtName.toLowerCase())
+                        addRoleToChannel(message.guild, channelID, roleID)
+
+                        message.reply(`successfully subscribed to <#${channelID}> and assigned role <@&${roleID}>`);
+                        (<TextChannel>message.guild.channels.cache
+                            .get(newDistrictsChannelID))
+                            .send(`${adminsID} ${newChannelMessage}\n${newRoleMessage}`)
+                    } else if (newChannelMessage === undefined && newRoleMessage !== undefined) {
+                        const roleID: string = checkRoleAndGetID(districtName.toLowerCase())
+                        message.reply(`successfully assigned role <@&${roleID}> but couldn't create an alerts channel, don't worry, the admins will fix this soon!`)
+                    } else if (newChannelMessage !== undefined && newRoleMessage === undefined) {
+                        message.reply(`successfully subscribed to channel <#${channelID}> but couldn't assign you to a role, don't worry, the admins will fix this soon!`)
+                    } else {
+                        message.reply(`district subscription failed, don't worry, the admins will contact you soon!`)
+                    }
                 } else {
-                    checkAndCreateRole(message, districtName.toLowerCase())
+                    if (roleID !== null) {
+                        const roleOnUser: boolean = checkRoleOnUser(message, districtName.toLowerCase())
+                        if (!roleOnUser) {
+                            setRoleToMember(roleID, message, districtName.toLowerCase())
+                            message.reply(`successfully assigned role <@&${roleID}>`);
+                        }  else {
+                            message.reply(`you are already subscribed to role <@&${roleID}>`)
+                        }
+                    } else {
+                        let newRoleMessage: string[] = await createRole(message, districtName.toLowerCase());
+                        message.reply(`successfully subscribed to <#${channelID}> and assigned role <@&${newRoleMessage[1]}>`);
+                        (<TextChannel>message.guild.channels.cache
+                            .get(newDistrictsChannelID))
+                            .send(`${adminsID} ${newRoleMessage[0]}.\nDistrict must be created earlier by a user without creating any role, please check.`)
+                    }
                 }
+
             } else if (subscription.startsWith("-")) {
                 checkAndRemoveRole(message, districtName.toLowerCase())
             }
