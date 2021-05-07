@@ -1,6 +1,7 @@
-import { CategoryChannel, Guild, GuildChannel, Message, TextChannel } from "discord.js";
+import { CategoryChannel, Guild, Message, TextChannel } from "discord.js";
 import { District } from "../config/types";
-require('dotenv').config({ path: '../config/.env' });
+import { everyoneRoleID } from "./roleManager";
+require('dotenv').config({ path: '../config/.env.uat' });
 
 let alertChannels: TextChannel[] = []
 export let districtsListChannelID: string = ""
@@ -29,49 +30,39 @@ export function loadChannels(server: Guild) {
     }
 }
 
-export function manageChannel(message: Message, district: District) {
+export async function createChannel(message: Message, district: District): Promise<string> {
     const server: Guild = message.guild;
     const districtName = district.district_name.toLowerCase()
-    const channelID = checkChannelAndGetID(districtName)
 
-    if (channelID != null) {
-        message.reply(`a channel already exists for this district, check <#${channelID}>.\nTo subscribe yourself to this district, enter +${districtName}.\nTo get the list of all available districts, check <#${districtsListChannelID}>`)
-    } else {
-        server.channels
-            .create(districtName + "-alerts", {
-                reason: `To display alerts for district ${districtName}`
-            })
-            .then(async (channel: TextChannel) => {
-                alertChannels.push(channel)
-                channel.setParent(alertsCategoryChannelID)
+    try {
+        const channel: TextChannel = await server.channels.create(districtName + "-alerts", {
+            topic: `This channel will display alerts for district ${districtName}. Created on ${new Date()}`
+        })
+        alertChannels.push(channel)
+        channel.setParent(alertsCategoryChannelID)
+        let newChannelMessage: string = `${message.author.username} created a new channel <#${channel.id}>\nDistrict ID: ${district.district_id}`
 
-                let notifyNewDistrictsMessage: string = `${message.author.username} created a new channel <#${channel.id}>\nDistrict ID: ${district.district_id}`
+        const webhookURL = await createWebHookAndGetURL(channel, districtName)
+        if (webhookURL != null) {
+            newChannelMessage += `\nWebhook URL: ${webhookURL}`
+        } else {
+            newChannelMessage += `\nWebhook creation failed for ${districtName}! Please create it manually`
+        }
 
-                const webhookURL = await createWebHookAndGetURL(channel, districtName)
-                if (webhookURL != null) {
-                    notifyNewDistrictsMessage += `\nWebhook URL: ${webhookURL}`
-                } else {
-                    notifyNewDistrictsMessage += "\nWebhook creation failed! Please create it manually"
-                }
+        return Promise.resolve(newChannelMessage)
+    } catch (error) {
+        console.log(error);
+        (<TextChannel>message.guild.channels.cache
+            .get(errorAlertsChannelID))
+            .send(`An error occurred when ${message.author.username} tried to create channel for district ${districtName} - ${error}`)
 
-                message.reply(`successfully created channel <#${channel.id}>.\nTo subscribe yourself to this district, enter +${districtName}.`);
-
-                (<TextChannel>message.guild.channels.cache
-                    .get(newDistrictsChannelID))
-                    .send(notifyNewDistrictsMessage)
-            })
-            .catch(error => {
-                console.log(error)
-                message.reply(`an error occurred while creating channel for district ${districtName}. Don't worry, the admins will contact you soon!`);
-                (<TextChannel>message.guild.channels.cache
-                    .get(errorAlertsChannelID))
-                    .send(`An error occurred when ${message.author.username} tried to create channel for district ${districtName} - ${error}`)
-            });
+        return Promise.resolve(undefined)
     }
+
 }
 
 export function checkChannelAndGetID(districtName: string) {
-    const channelName: string = `${districtName}-alerts`.replace(" ", "-")
+    const channelName: string = `${districtName}-alerts`.replace(/ /g, "-")
     for (const alertChannel of alertChannels) {
         if (channelName === alertChannel.name) {
             return alertChannel.id
@@ -88,4 +79,17 @@ async function createWebHookAndGetURL(channel: TextChannel, districtName: string
         console.log(error);
         return Promise.resolve(null)
     }
+}
+
+export function addRoleToChannel(server: Guild, channelID: string, roleID: string) {
+    server.channels.cache.get(channelID).overwritePermissions([
+        {
+            id: everyoneRoleID,
+            deny: ['VIEW_CHANNEL']
+        },
+        {
+            id: roleID,
+            allow: ['VIEW_CHANNEL']
+        }
+    ])
 }
