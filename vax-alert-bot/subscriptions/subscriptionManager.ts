@@ -1,11 +1,14 @@
 import axios from "axios";
 import { Message, TextChannel } from "discord.js";
 import { State, District, Action } from "../config/types";
-import { checkChannelAndGetID, createChannel, addRoleToChannel, newDistrictsChannelID, aurangabadBiharChannelID, aurangabadMaharashtraChannelID } from "./channelManager";
-import { checkRoleAndGetID, createRole, adminsID, checkRoleOnUser, setRoleToMember, checkAndRemoveRole, aurangabadBiharRoleID, aurangabadMaharashtraRoleID } from "./roleManager";
+import { checkChannelAndGetID, createChannel, addRoleToChannel, newDistrictsChannelID, aurangabadBiharChannelID, aurangabadMaharashtraChannelID } from "../discord/channelManager";
+import { checkRoleAndGetID, createRole, adminsID, checkRoleOnUser, setRoleToMember, checkAndRemoveRole, aurangabadBiharRoleID, aurangabadMaharashtraRoleID } from "../discord/roleManager";
+import { managePincodeSubscription } from "./pincodeManager";
 
 let districts: District[] = []
 const aurangabad: string = "aurangabad"
+
+const pincodeRegExp: RegExp = new RegExp('^[0-9]*$')
 
 export async function initDistricts() {
     const states: State[] = (await axios.get('https://cdn-api.co-vin.in/api/v2/admin/location/states', {
@@ -30,30 +33,35 @@ export async function manageSubscription(message: Message) {
     const subscription = message.content
     if (!subscription.startsWith("+") && !subscription.startsWith("-")) {
         if (subscription.trim().toLowerCase().startsWith(aurangabad)) {
-            message.reply(`To subscribe to this district's alerts please enter district name starting with +\nFor example:\n+Aurangabad, Maharashtra\n+Aurangabad, Bihar\nTo be removed from this district's subscription, please enter district name starting with -\nFor example:\n-Aurangabad, Maharashtra\n-Aurangabad, Bihar`)
+            message.reply(`To subscribe to alerts please enter district name/pincode starting with +\nFor example:\n+Aurangabad, Maharashtra\n+Aurangabad, Bihar\nTo be removed from this district's subscription, please enter district name/pincode starting with -\nFor example:\n-Aurangabad, Maharashtra\n-Aurangabad, Bihar`)
         } else {
-            message.reply(`To subscribe to this district's alerts please enter district name starting with + for example +${subscription}\nTo be removed from this district's subscription, please enter district name starting with - for example -${subscription}`)
+            message.reply(`To subscribe to alerts please enter district name/pincode starting with + for example +${subscription}\nTo be removed from this subscription, please enter district name/pincode starting with - for example -${subscription}`)
         }
     } else {
+        const subscriptionValue: string = subscription.substring(1)
         const action: Action = <Action>subscription.substring(0, 1)
-        const districtName = subscription.substring(1).trim()
-        const district: District = checkDistrict(districtName)
-        if (district === null && !districtName.toLowerCase().startsWith(aurangabad)) {
-            message.reply(`no such district:  ${districtName}`)
-        } else if (districtName.toLowerCase().startsWith(aurangabad)) {
-            manageAurangabadSubscription(message, districtName.toLowerCase(), action)
+        if (pincodeRegExp.test(subscription.substring(1))) {
+            managePincodeSubscription(message, subscriptionValue.trim(), action)
         } else {
-            if (action === "+") {
-                let channelID: string = checkChannelAndGetID(districtName.toLowerCase())
-                let roleID: string = checkRoleAndGetID(districtName.toLowerCase())
-                if (channelID === null) {
-                    addNewDistrict(message, district, channelID)
-                } else {
-                    manageExistingDistrict(message, districtName, channelID, roleID)
-                }
+            const districtName = subscription.substring(1).trim()
+            const district: District = checkDistrict(districtName)
+            if (district === null && !districtName.toLowerCase().startsWith(aurangabad)) {
+                message.reply(`no such district:  ${districtName}`)
+            } else if (districtName.toLowerCase().startsWith(aurangabad)) {
+                manageAurangabadSubscription(message, districtName.toLowerCase(), action)
+            } else {
+                if (action === "+") {
+                    let channelID: string = checkChannelAndGetID(districtName.toLowerCase())
+                    let roleID: string = checkRoleAndGetID(districtName.toLowerCase())
+                    if (channelID === null) {
+                        addNewDistrict(message, district, channelID)
+                    } else {
+                        manageExistingDistrict(message, districtName, channelID, roleID)
+                    }
 
-            } else if (action === "-") {
-                checkAndRemoveRole(message, districtName.toLowerCase())
+                } else if (action === "-") {
+                    checkAndRemoveRole(message, districtName.toLowerCase())
+                }
             }
         }
     }
@@ -126,7 +134,7 @@ async function manageAurangabadSubscription(message: Message, districtName: stri
             if (roleSet) {
                 message.reply(`successfully subscribed to <#${aurangabadBiharChannelID}> and assigned role <@&${aurangabadBiharRoleID}>`)
             }
-        } else if(action == "-") {
+        } else if (action == "-") {
             checkAndRemoveRole(message, "aurangabad")
         }
     } else if (state.toLowerCase().trim() == "maharashtra") {
@@ -135,7 +143,7 @@ async function manageAurangabadSubscription(message: Message, districtName: stri
             if (roleSet) {
                 message.reply(`successfully subscribed to <#${aurangabadMaharashtraChannelID}> and assigned role <@&${aurangabadMaharashtraRoleID}>`)
             }
-        } else if(action == "-") {
+        } else if (action == "-") {
             checkAndRemoveRole(message, "aurangabad-mh")
         }
     }

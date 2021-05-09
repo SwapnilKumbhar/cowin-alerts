@@ -9,3 +9,9 @@ export interface District {
 }
 
 export type Action = "+" | "-"
+
+export interface UserPincode {
+    id: string
+    user_id: string
+    pincode: number
+}

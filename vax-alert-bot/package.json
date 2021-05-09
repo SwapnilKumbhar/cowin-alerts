@@ -17,10 +17,12 @@
   },
   "homepage": "https://github.com/SwapnilKumbhar/cowin-alerts#readme",
   "dependencies": {
+    "@types/sqlite3": "^3.1.7",
     "axios": "^0.21.1",
     "discord.js": "^12.5.3",
     "dotenv": "^8.2.0",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "sqlite3": "^5.0.2"
   },
   "devDependencies": {
     "ts-node": "^9.1.1"

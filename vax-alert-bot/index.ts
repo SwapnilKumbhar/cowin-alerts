@@ -1,7 +1,8 @@
 import { Client, TextChannel } from 'discord.js';
 import { loadChannels } from './discord/channelManager';
 import { loadRoles } from './discord/roleManager';
-import { initDistricts, manageSubscription } from './discord/subscriptionManager';
+import { loadVaxAlertDatabase } from './subscriptions/pincodeManager';
+import { initDistricts, manageSubscription } from './subscriptions/subscriptionManager';
 
 require('dotenv').config({ path: './config/.env' });
 
@@ -14,6 +15,7 @@ client.on('ready', () => {
     loadChannels(client.guilds.cache.array()[0])
     loadRoles(client.guilds.cache.array()[0])
     initDistricts()
+    loadVaxAlertDatabase()
 
     console.log(`${process.env.BOT_NAME} is ready`);
 });
