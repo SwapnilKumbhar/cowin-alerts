@@ -11,3 +11,12 @@ config.yaml
 
 /vax-alert-bot/config/.env
 /vax-alert-bot/config/.env.uat
+
+# PyCache
+__pycache__
+
+# Virtual Env
+venv/
+
+# Anything that we are using for tests
+test*
