@@ -6,65 +6,18 @@ import traceback
 from yaml import safe_load
 from pytz import timezone
 
-#### Load configs. This **cannot** fail.
-#### TODO: Add schema validation
-try:
-    CONFIG = safe_load(open("config.yaml", "r"))
-except Exception as e:
-    print(e)
-    exit()  # Please get your config in shape
-
-CORE = CONFIG["core"]
-DISTRICTS = CONFIG["districts"]
-
-###############################################################################
-##### API Setu configurations
-###############################################################################
-# Authentication constants
-# Timeout
-TIMEOUT = CORE["timeout"]
-AUTH_TOKEN = CORE["auth_token"]
-# API Endpoits
-ASETU_PRODUCTION_SERVER = CORE["api"]["base"]
-
-ASETU_CALENDAR_BY_DISTRICT = CORE["api"]["endpoints"]["calendarByDistrict"]
-
-# State, District code, etc. constants
-# Time to comprehend some lists...
-ASETU_DISTRICTS = {k: v["id"] for k, v in DISTRICTS.items()}
-
-###############################################################################
-#### Discord configurations
-###############################################################################
-
-# We can have empty values here.
-DISCORD_DIST_WEBHOOKS = {
-    k: v["discord"]["webhooks"]["district"] for k, v in DISTRICTS.items()
-}
-DISCORD_PIN_WEBHOOKS = {
-    k: v["discord"]["webhooks"]["pincode"] for k, v in DISTRICTS.items()
-}
-
-# This determines what channels to notify
-# Format: {'mumbai': {'district': True, 'pincode': True}}
-DISCORD_FILTER_CONFIG = {
-    k: {
-        "district": v["filters"]["district"],
-        "pincode": v["filters"]["pincode"]["enabled"],
-    }
-    for k, v in DISTRICTS.items()
-}
-
-DISCORD_ROLES = {k: v["discord"]["role_id"] for k, v in DISTRICTS.items()}
-
-# Less than total 10 slots in a day
-RED_ALERT = "7798804"
-
-# Total 10-40 slots in a day
-AMBER_ALERT = "16760576"
-
-# More than total 40 slots in a day
-GREEN_ALERT = "3066993"
+from alerts.discord import sendAlert
+from config import (
+    AUTH_TOKEN,
+    ASETU_PRODUCTION_SERVER,
+    ASETU_CALENDAR_BY_DISTRICT,
+    DISCORD_FILTER_CONFIG,
+    ASETU_DISTRICTS,
+    DISCORD_DIST_WEBHOOKS,
+    DISCORD_PIN_WEBHOOKS,
+    DISTRICTS,
+    TIMEOUT,
+)
 
 # helper
 def currentDate():
@@ -154,73 +107,6 @@ def findCentersForDistrict(district, district_id):
     return filteredData, None
 
 
-def alertDiscord(centers, district, hook):
-    sessions = {}
-    sessionSlots = {}
-    mention = DISCORD_ROLES[district]
-
-    for center in centers:
-        for session in center["sessions"]:
-
-            centerName = center["name"]
-            availableCapacity = session["available_capacity"]
-            pincode = center["pincode"]
-            minAge = session["min_age_limit"]
-            feeType = center["fee_type"]
-            vaccine = session["vaccine"]
-            currentDescription = ""
-            currentSlots = 0
-
-            if session["date"] in sessions.keys():
-                currentDescription = sessions[session["date"]]
-                currentSlots = sessionSlots[session["date"]]
-
-            currentDescription = f"""{currentDescription}Hospital Name: **{centerName}**,
-            Slots: **{availableCapacity}**,
-            Pincode: **{pincode}**,
-            Min age: **{minAge}**,
-            Fee type: **{feeType}**
-            Vaccine: **{vaccine}**
-            ------------------------------------------------
-            """
-            currentSlots = currentSlots + availableCapacity
-
-            sessions[session["date"]] = currentDescription
-            sessionSlots[session["date"]] = currentSlots
-
-    for date, session in sessions.items():
-        print(f"Sending alerts for date {date}...")
-
-        totalSlots = sessionSlots[date]
-        if totalSlots < 10:
-            currentColor = RED_ALERT
-        elif 10 <= totalSlots < 40:
-            currentColor = AMBER_ALERT
-        else:
-            currentColor = GREEN_ALERT
-
-        if totalSlots < 5:
-            # If slots are less than 5, do not @mention them. Just notify still.
-            content = f"Slots available at {district}!"
-        else:
-            # Else, we @mention and let everyone know.
-            content = mention
-
-        requests.post(
-            hook,
-            json={
-                "content": content,
-                "embeds": [
-                    {
-                        "title": f"Total slots: {totalSlots} for {date}",
-                        "description": session,
-                        "color": currentColor,
-                    }
-                ],
-            },
-        )
-
-
 if __name__ == "__main__":
     while True:
         # Loop forever
@@ -233,11 +119,9 @@ if __name__ == "__main__":
                     district, districtId
                 )
                 if filteredData is not None:
-                    alertDiscord(
-                        filteredData, district, DISCORD_DIST_WEBHOOKS[district]
-                    )
+                    sendAlert(filteredData, district, DISCORD_DIST_WEBHOOKS[district])
                 if filteredPincodeData is not None:
-                    alertDiscord(
+                    sendAlert(
                         filteredPincodeData, district, DISCORD_PIN_WEBHOOKS[district]
                     )
             except Exception as e:
