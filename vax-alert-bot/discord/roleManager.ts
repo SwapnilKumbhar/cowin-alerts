@@ -2,10 +2,12 @@ import { Guild, GuildMember, Message, Role, TextChannel } from "discord.js";
 import { errorAlertsChannelID, generalChannelID } from "./channelManager";
 
 let roles: Role[] = []
-export let everyoneRoleID: string = "838421930406445086"
+export const everyoneRoleID: string = "838421930406445086"
+export const aurangabadBiharRoleID: string = "839388376477335583"
+export const aurangabadMaharashtraRoleID: string = "840549022598037515"
 let memberRoleID: string
 
-export const adminsID: string = "<@&838446465566244914>"
+export const adminsID: string = "838446465566244914"
 
 export function loadRoles(server: Guild) {
     let allRoles = server.roles.cache.array();
@@ -38,7 +40,7 @@ export async function createRole(message: Message, districtName: string): Promis
         message.reply(`an error occurred while subscribing to district ${districtName}. Don't worry, the admins will contact you soon!`);
         (<TextChannel>message.guild.channels.cache
             .get(errorAlertsChannelID))
-            .send(`An error occurred when ${message.author.username} tried to create role for district ${districtName} - ${error}`)
+            .send(`<@&${adminsID}> an error occurred when ${message.author.username} tried to create role for district ${districtName} - ${error}`)
 
         return Promise.resolve(undefined)
     }
@@ -69,7 +71,7 @@ export async function setRoleToMember(roleID: string, message: Message, district
                 message.reply(`an error occurred while subscribing to district ${districtName}. Don't worry, the admins will contact you soon!`);
                 (<TextChannel>message.guild.channels.cache
                     .get(errorAlertsChannelID))
-                    .send(`An error occurred while assigning role 'member' to ${message.author.username} - ${error}`)
+                    .send(`<@&${adminsID}> an error occurred while assigning role 'member' to ${message.author.username} - ${error}`)
 
                 return Promise.resolve(false)
             }
@@ -80,7 +82,7 @@ export async function setRoleToMember(roleID: string, message: Message, district
         message.reply(`an error occurred while subscribing to district ${districtName}. Don't worry, the admins will contact you soon!`);
         (<TextChannel>message.guild.channels.cache
             .get(errorAlertsChannelID))
-            .send(`An error occurred when ${message.author.username} tried to subscribe to district ${districtName} - ${error}`)
+            .send(`<@&${adminsID}> an error occurred when ${message.author.username} tried to subscribe to district ${districtName} - ${error}`)
         return Promise.resolve(false)
     }
 }
@@ -107,7 +109,7 @@ export async function checkAndRemoveRole(message: Message, districtName: string)
                 message.reply(`an error occurred while unsubscribing to district ${districtName}. Don't worry, the admins will contact you soon!`);
                 (<TextChannel>message.guild.channels.cache
                     .get(errorAlertsChannelID))
-                    .send(`An error occurred when ${message.author.username} tried to unsubscribe to district ${districtName} - ${error}`)
+                    .send(`<@&${adminsID}> an error occurred when ${message.author.username} tried to unsubscribe to district ${districtName} - ${error}`)
             }
         } else {
             message.reply(`user <@${message.author.id}> is not subscribed to role <@&${roleID}>`)
