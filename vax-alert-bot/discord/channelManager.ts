@@ -1,22 +1,30 @@
 import { CategoryChannel, Guild, Message, TextChannel } from "discord.js";
 import { District } from "../config/types";
-import { everyoneRoleID } from "./roleManager";
-require('dotenv').config({ path: '../config/.env.uat' });
+import { adminsID, everyoneRoleID } from "./roleManager";
+require('dotenv').config({ path: '../config/.env' });
 
 let alertChannels: TextChannel[] = []
 export let districtsListChannelID: string = ""
 export let errorAlertsChannelID: string = ""
 export let newDistrictsChannelID: string = ""
 export let generalChannelID: string = ""
-let alertsCategoryChannelID: string = ""
+export let aurangabadBiharChannelID: string = ""
+export let aurangabadMaharashtraChannelID: string = ""
+let currentAlertsCategoryID: string = ""
+let alertCategories: string[] = []
 
 export function loadChannels(server: Guild) {
     let channels = server.channels.cache.array();
+    alertCategories = process.env.ALERTS_CATEGORIES.split(", ")
+
     for (const channel of channels) {
-        if (channel.type === "category" && channel.name === process.env.ALERTS_CATEGORY) {
+        if (channel.type === "category" && alertCategories.includes(channel.name)) {
             const categoryChannel = <CategoryChannel>channel
-            alertChannels = <TextChannel[]>categoryChannel.children.array()
-            alertsCategoryChannelID = channel.id
+            let alertCategoryChannels: TextChannel[] = <TextChannel[]>categoryChannel.children.array()
+            alertChannels = alertChannels.concat(alertCategoryChannels)
+        }
+        if(channel.name == process.env.CURRENT_ALERTS_CATEGORY) {
+            currentAlertsCategoryID = channel.id
         }
         if (channel.name === process.env.DISTRICTS_LIST) {
             districtsListChannelID = channel.id
@@ -26,6 +34,10 @@ export function loadChannels(server: Guild) {
             newDistrictsChannelID = channel.id
         } else if (channel.name === process.env.GENERAL) {
             generalChannelID = channel.id
+        } else if (channel.name === "aurangabad-alerts") {
+            aurangabadBiharChannelID = channel.id
+        } else if (channel.name === "aurangabad-mh-alerts") {
+            aurangabadMaharashtraChannelID = channel.id
         }
     }
 }
@@ -39,7 +51,7 @@ export async function createChannel(message: Message, district: District): Promi
             topic: `This channel will display alerts for district ${districtName}. Created on ${new Date()}`
         })
         alertChannels.push(channel)
-        channel.setParent(alertsCategoryChannelID)
+        channel.setParent(currentAlertsCategoryID)
         let newChannelMessage: string = `${message.author.username} created a new channel <#${channel.id}>\nDistrict ID: ${district.district_id}`
 
         const webhookURL = await createWebHookAndGetURL(channel, districtName)
@@ -54,7 +66,7 @@ export async function createChannel(message: Message, district: District): Promi
         console.log(error);
         (<TextChannel>message.guild.channels.cache
             .get(errorAlertsChannelID))
-            .send(`An error occurred when ${message.author.username} tried to create channel for district ${districtName} - ${error}`)
+            .send(`<@&${adminsID}> an error occurred when ${message.author.username} tried to create channel for district ${districtName} - ${error}`)
 
         return Promise.resolve(undefined)
     }
@@ -85,7 +97,7 @@ export function addRoleToChannel(server: Guild, channelID: string, roleID: strin
     server.channels.cache.get(channelID).overwritePermissions([
         {
             id: everyoneRoleID,
-            deny: ['VIEW_CHANNEL']
+            deny: ['VIEW_CHANNEL', 'SEND_MESSAGES']
         },
         {
             id: roleID,
