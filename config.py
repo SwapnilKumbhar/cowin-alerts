@@ -59,3 +59,9 @@ DISCORD_AMBER_ALERT = "16760576"
 
 # More than total 40 slots in a day
 DISCORD_GREEN_ALERT = "3066993"
+
+# Discord errors channel, notify here when anything breaks
+DISCORD_ERROR_HOOK = CORE["discord"]["errors"]["hook"]
+
+# Notify these people in case of an error
+DISCORD_ERROR_ROLES = CORE["discord"]["errors"]["notify"]

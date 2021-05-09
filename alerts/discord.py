@@ -3,8 +3,11 @@ from config import (
     DISCORD_RED_ALERT,
     DISCORD_AMBER_ALERT,
     DISCORD_GREEN_ALERT,
+    DISCORD_ERROR_HOOK,
+    DISCORD_ERROR_ROLES,
 )
 import requests
+import traceback
 
 
 def sendAlert(centers, district, hook):
@@ -72,3 +75,25 @@ def sendAlert(centers, district, hook):
                 ],
             },
         )
+
+
+def sendError(message):
+    notifyRoles = ",".join(DISCORD_ERROR_ROLES)
+    description = traceback.format_exc()
+
+    print("-- Notifying our dear admins...")
+    resp = requests.post(
+        DISCORD_ERROR_HOOK,
+        json={
+            "content": notifyRoles,
+            "embeds": [
+                {
+                    "title": message.__str__(),
+                    "description": description,  # stacktrace
+                    "color": DISCORD_RED_ALERT,
+                }
+            ],
+        },
+    )
+    print(resp.text)
+    print(resp.status_code)

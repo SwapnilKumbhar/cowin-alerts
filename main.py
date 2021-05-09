@@ -7,6 +7,7 @@ from yaml import safe_load
 from pytz import timezone
 
 from alerts.discord import sendAlert
+from alerts.discord import sendError
 from config import (
     AUTH_TOKEN,
     ASETU_PRODUCTION_SERVER,
@@ -126,7 +127,6 @@ if __name__ == "__main__":
                     )
             except Exception as e:
                 print("[!] Something went wrong in the outer loop.")
-                print("[!] Skipping...")
-                traceback.print_exc()
+                sendError(e)
             # We sleep for some time
         sleep(TIMEOUT)
