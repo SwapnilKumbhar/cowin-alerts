@@ -199,10 +199,17 @@ def alertDiscord(centers, district, hook):
         else:
             currentColor = GREEN_ALERT
 
+        if totalSlots < 5:
+            # If slots are less than 5, do not @mention them. Just notify still.
+            content = f"Slots available at {district}!"
+        else:
+            # Else, we @mention and let everyone know.
+            content = mention
+
         requests.post(
             hook,
             json={
-                "content": f"{mention}",
+                "content": content,
                 "embeds": [
                     {
                         "title": f"Total slots: {totalSlots} for {date}",
