@@ -20,3 +20,5 @@ venv/
 
 # Anything that we are using for tests
 test*
+
+vax_alert.db
