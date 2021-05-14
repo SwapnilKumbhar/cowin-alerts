@@ -36,22 +36,8 @@ DB_PATH = CORE["database"]["path"]
 #### Discord configurations
 ###############################################################################
 
-# We can have empty values here.
 DISCORD_DIST_WEBHOOKS = {
     k: v["discord"]["webhooks"]["district"] for k, v in DISTRICTS.items()
-}
-DISCORD_PIN_WEBHOOKS = {
-    k: v["discord"]["webhooks"]["pincode"] for k, v in DISTRICTS.items()
-}
-
-# This determines what channels to notify
-# Format: {'mumbai': {'district': True, 'pincode': True}}
-DISCORD_FILTER_CONFIG = {
-    k: {
-        "district": v["filters"]["district"],
-        "pincode": v["filters"]["pincode"]["enabled"],
-    }
-    for k, v in DISTRICTS.items()
 }
 
 DISCORD_ROLES = {k: v["discord"]["role_id"] for k, v in DISTRICTS.items()}

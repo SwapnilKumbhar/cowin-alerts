@@ -12,10 +12,8 @@ from config import (
     AUTH_TOKEN,
     ASETU_PRODUCTION_SERVER,
     ASETU_CALENDAR_BY_DISTRICT,
-    DISCORD_FILTER_CONFIG,
     ASETU_DISTRICTS,
     DISCORD_DIST_WEBHOOKS,
-    DISCORD_PIN_WEBHOOKS,
     DISTRICTS,
     TIMEOUT,
 )
@@ -62,19 +60,9 @@ def filterCenters(data):
 
     return filteredCenters
 
-
-# For creating filter functions
-def filterFactory(startsWithFilter):
-    def x(s):
-        p = str(s["pincode"])
-        f = str(startsWithFilter)
-        return p.startswith(f)
-    return x
-
-
 # 1. Get a distinct list of pincodes from the data
 # 2. Get roles for all those pincodes from the database
-def filterByPincode(data):
+def findRolesForPincodes(data):
     pincodes = list(set(map(lambda d: d["pincode"], data)))
     roles = getRolesForPincodes(pincodes)
     if len(roles) == 0:
@@ -90,8 +78,8 @@ def findCentersForDistrict(district, district_id):
         return None, None
     filteredData = filterCenters(allData)
     # We send the filtered data to the pincode filter
-    if len(filteredData) > 0 and DISCORD_FILTER_CONFIG[district]["pincode"]:
-        return filteredData, filterByPincode(filteredData)
+    if len(filteredData) > 0:
+        return filteredData, findRolesForPincodes(filteredData)
     else:
         return None, None
 

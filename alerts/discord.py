@@ -132,7 +132,6 @@ def sendAlert(centers, district, hook, mentions=None):
                     print(f"--- i: {i}")
                     currentMentions = " ".join(allMentions[i : i + 88])
                     if len(currentMentions) == 0:
-                        print("breaking...")
                         break
                     resp = requests.post(
                         hook,
@@ -157,7 +156,7 @@ def sendAlert(centers, district, hook, mentions=None):
 
 
 def sendError(message):
-    notifyRoles = ",".join(DISCORD_ERROR_ROLES)
+    notifyRoles = "".join(DISCORD_ERROR_ROLES)
     description = traceback.format_exc()
 
     print("-- Notifying our dear admins...")
