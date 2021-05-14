@@ -128,8 +128,6 @@ def sendAlert(centers, district, hook, mentions=None):
                 # Now we send alerts for chunks of 88 items.
                 i = 0
                 while i < len(allMentions):
-                    # Post alert for a block of 86 mentions
-                    print(f"--- i: {i}")
                     currentMentions = " ".join(allMentions[i : i + 88])
                     if len(currentMentions) == 0:
                         break
