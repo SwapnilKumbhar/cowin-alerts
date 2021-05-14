@@ -19,6 +19,7 @@ from config import (
     DISTRICTS,
     TIMEOUT,
 )
+from database.sqlite import getRolesForPincodes
 
 # helper
 def currentDate():
@@ -68,31 +69,18 @@ def filterFactory(startsWithFilter):
         p = str(s["pincode"])
         f = str(startsWithFilter)
         return p.startswith(f)
-
     return x
 
 
-def filterByPincode(district, data):
-    # We assume that the `enabled` condition is checked outside
-    # Another assumption (guarantee) is that data is never empty
-    filters = DISTRICTS[district]["filters"]["pincode"]
-    exactFilter = lambda s: (s["pincode"] in filters["exact"])
-    startsWithFilters = [filterFactory(f) for f in filters["starts_with"]]
-
-    exactSessions = list(filter(exactFilter, data))
-
-    startsWithSessions = []
-    for f in startsWithFilters:
-        sess = list(filter(f, data))
-        startsWithSessions.append(sess)
-
-    # Merge and deduplicate
-    merged = exactSessions + startsWithSessions
-    dedupedList = []
-    for m in merged:
-        if m not in dedupedList:
-            dedupedList.append(m)
-    return dedupedList
+# 1. Get a distinct list of pincodes from the data
+# 2. Get roles for all those pincodes from the database
+def filterByPincode(data):
+    pincodes = list(set(map(lambda d: d["pincode"], data)))
+    roles = getRolesForPincodes(pincodes)
+    if len(roles) == 0:
+        # Noone subscribed to pincodes of this district
+        return None
+    return roles
 
 
 def findCentersForDistrict(district, district_id):
@@ -103,28 +91,24 @@ def findCentersForDistrict(district, district_id):
     filteredData = filterCenters(allData)
     # We send the filtered data to the pincode filter
     if len(filteredData) > 0 and DISCORD_FILTER_CONFIG[district]["pincode"]:
-        filteredDataByPincode = filterByPincode(district, filteredData)
-        return (filteredData, filteredDataByPincode)
-    return filteredData, None
+        return filteredData, filterByPincode(filteredData)
+    else:
+        return None, None
 
 
 if __name__ == "__main__":
     while True:
         # Loop forever
-        print(f"---- Trying at: {datetime.now()} ----")
+        print(f"---- Trying at: {datetime.now(timezone('Asia/Kolkata'))} ----")
         for district, districtId in ASETU_DISTRICTS.items():
-            sleep(0.2)
+            sleep(0.1)
             print(f"[+] Finding centers for district: {district}")
             try:
-                filteredData, filteredPincodeData = findCentersForDistrict(
+                filteredData, roles = findCentersForDistrict(
                     district, districtId
                 )
                 if filteredData is not None:
-                    sendAlert(filteredData, district, DISCORD_DIST_WEBHOOKS[district])
-                if filteredPincodeData is not None:
-                    sendAlert(
-                        filteredPincodeData, district, DISCORD_PIN_WEBHOOKS[district]
-                    )
+                    sendAlert(filteredData, district, DISCORD_DIST_WEBHOOKS[district], roles)
             except Exception as e:
                 print("[!] Something went wrong in the outer loop.")
                 sendError(e)

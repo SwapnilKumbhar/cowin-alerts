@@ -10,10 +10,17 @@ import requests
 import traceback
 
 
-def sendAlert(centers, district, hook):
+def sendAlert(centers, district, hook, mentions=None):
     sessions = {}
     sessionSlots = {}
-    mention = DISCORD_ROLES[district]
+    mention = (
+        "".join(
+            list(map(lambda s: "<@{}>".format(s), mentions))
+        )  # I know, this is ugly
+        if mentions is not None
+        else ""
+    )  # Basically, if mentions are provided explicity, we alert those mentions. For pincodes only.
+    districtMention = DISCORD_ROLES[district]
 
     for center in centers:
         for session in center["sessions"]:
@@ -57,24 +64,96 @@ def sendAlert(centers, district, hook):
 
         if totalSlots < 5:
             # If slots are less than 5, do not @mention them. Just notify still.
+            # Notify and return from the function here.
             content = f"Slots available at {district}!"
-        else:
-            # Else, we @mention and let everyone know.
-            content = mention
+            resp = requests.post(
+                hook,
+                json={
+                    "content": content,
+                    "embeds": [
+                        {
+                            "title": f"Total slots: {totalSlots} for {date}",
+                            "description": session,
+                            "color": currentColor,
+                        }
+                    ],
+                },
+            )
+            if resp.status_code in range(200, 300):
+                print("[+] Alerted Discord!")
+            else:
+                print("[!] Failed to alert discord")
+                print(f"[!] Response Code: {resp.status_code}")
+            return
 
-        requests.post(
-            hook,
-            json={
-                "content": content,
-                "embeds": [
-                    {
-                        "title": f"Total slots: {totalSlots} for {date}",
-                        "description": session,
-                        "color": currentColor,
-                    }
-                ],
-            },
-        )
+        content = districtMention + mention
+
+        if len(content) < 2000:
+            resp = requests.post(
+                hook,
+                json={
+                    "content": content,
+                    "embeds": [
+                        {
+                            "title": f"Total slots: {totalSlots} for {date}",
+                            "description": session,
+                            "color": currentColor,
+                        }
+                    ],
+                },
+            )
+            if resp.status_code in range(200, 300):
+                print("[+] Alerted Discord!")
+            else:
+                print("[!] Failed to alert discord")
+                print(f"[!] Response Code: {resp.status_code}")
+
+        elif mentions is not None:  # We are notifying for pincodes
+            if availableCapacity >= 5:  # Notify only if more than 5 slots open
+                # Split the message into multiple messages.
+                # I know. This is redundant, but I feel this case will be less common
+                # so I can go with the 0.00001 seconds of overhead.
+                allMentions = content.split(" ")
+
+                #
+                # Time for some Quicc Maths! We will alert people like this: '@district @user1 @user2 @user3 ...'
+                # In order to do this, you have to put a districtMention and the individual user mentions. Discord will not
+                # allow more than 2000 characters in their messages, so we have to split them and send it across.
+                # Each districtMention (which is a role mention) is 23 characters long and each user mention is 22 characters long.
+                # 
+                # So I'll be conservative and take the least of the two, multiply it close enough to get to 2000 and then send it across.
+                # .: 23 + 22 * x < 2000
+                # .: x < 1977/22 =~ 89
+                # For good measure, to **ensure** it is never greater than 2000 ever, lets reduce 1. So that's 88.
+                # Now we send alerts for chunks of 88 items.
+                i = 0
+                while i < len(allMentions):
+                    # Post alert for a block of 86 mentions
+                    print(f"--- i: {i}")
+                    currentMentions = " ".join(allMentions[i : i + 88])
+                    if len(currentMentions) == 0:
+                        print("breaking...")
+                        break
+                    resp = requests.post(
+                        hook,
+                        json={
+                            "content": currentMentions,
+                            "embeds": [
+                                {
+                                    "title": f"Total slots: {totalSlots} for {date}",
+                                    "description": session,
+                                    "color": currentColor,
+                                }
+                            ],
+                        },
+                    )
+                    if resp.status_code in range(200, 300):
+                        print("[+] Alerted Discord!")
+                    else:
+                        print("[!] Failed to alert discord")
+                        print(f"[!] Response Code: {resp.status_code}")
+
+                    i += 86
 
 
 def sendError(message):
@@ -95,5 +174,3 @@ def sendError(message):
             ],
         },
     )
-    print(resp.text)
-    print(resp.status_code)
