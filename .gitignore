@@ -11,6 +11,7 @@ config.yaml
 
 /vax-alert-bot/config/.env
 /vax-alert-bot/config/.env.uat
+/vax-alert-bot/config/districts.json
 
 # PyCache
 __pycache__
