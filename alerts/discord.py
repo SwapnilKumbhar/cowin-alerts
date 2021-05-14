@@ -120,7 +120,7 @@ def sendAlert(centers, district, hook, mentions=None):
                 # In order to do this, you have to put a districtMention and the individual user mentions. Discord will not
                 # allow more than 2000 characters in their messages, so we have to split them and send it across.
                 # Each districtMention (which is a role mention) is 23 characters long and each user mention is 22 characters long.
-                # 
+                #
                 # So I'll be conservative and take the least of the two, multiply it close enough to get to 2000 and then send it across.
                 # .: 23 + 22 * x < 2000
                 # .: x < 1977/22 =~ 89

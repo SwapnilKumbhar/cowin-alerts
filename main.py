@@ -60,6 +60,7 @@ def filterCenters(data):
 
     return filteredCenters
 
+
 # 1. Get a distinct list of pincodes from the data
 # 2. Get roles for all those pincodes from the database
 def findRolesForPincodes(data):
@@ -92,11 +93,11 @@ if __name__ == "__main__":
             sleep(0.1)
             print(f"[+] Finding centers for district: {district}")
             try:
-                filteredData, roles = findCentersForDistrict(
-                    district, districtId
-                )
+                filteredData, roles = findCentersForDistrict(district, districtId)
                 if filteredData is not None:
-                    sendAlert(filteredData, district, DISCORD_DIST_WEBHOOKS[district], roles)
+                    sendAlert(
+                        filteredData, district, DISCORD_DIST_WEBHOOKS[district], roles
+                    )
             except Exception as e:
                 print("[!] Something went wrong in the outer loop.")
                 sendError(e)
