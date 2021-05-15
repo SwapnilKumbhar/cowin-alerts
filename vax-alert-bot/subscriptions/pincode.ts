@@ -5,7 +5,7 @@ import { checkChannelAndGetID, createChannel, errorAlertsChannelID, newDistricts
 import { adminsID } from '../discord/roleHandler';
 
 import districtsData from "../config/districts.json"
-import { districts } from './district';
+import { districts, updateDistrictsList } from './district';
 
 
 /**************************** Initializing data ****************************/
@@ -61,7 +61,7 @@ export function managePincodeSubscription(message: Message, pincode: string, act
         message.reply(`pincode ${pincode} is not 6 digits long, please enter valid pincode`)
     } else {
         // Validate the pincode
-        if (!pincodeDistrictMap.get(Number(pincode))) {
+        if (pincodeDistrictMap.get(Number(pincode))) {
             if (action === "+") {
                 subscribePincode(message, pincode)
             } else if (action === "-") {
@@ -152,9 +152,12 @@ async function createNewChannelForPincode(message: Message, pincodeValue: number
     if (currentDistrict) {
         const newChannelMessageForAdmins: string = await createChannel(message, currentDistrict)
         if (newChannelMessageForAdmins) {
+            updateDistrictsList(message, currentDistrict.district_name);
+
             (<TextChannel>message.guild.channels.cache
                 .get(newDistrictsChannelID))
                 .send(`<@&${adminsID}> \n**For pincode ${pincodeValue} -**\n${newChannelMessageForAdmins}`)
+
             return checkChannelAndGetID(districtName)
         } else {
             message.reply(`an error occured while subscribing to pincode ${pincodeValue}, don't worry, the admins will contact you soon`)
