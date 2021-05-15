@@ -1,13 +1,14 @@
 import { Client, Guild, Message, TextChannel } from 'discord.js';
-import { Action } from './config/types';
+import { Action, SubscriptionType } from './config/types';
 import { loadChannels, subscriptionsChannelID } from './discord/channelHandler';
 import { loadRoles } from './discord/roleHandler';
 import { loadPincodesPerDistrict, loadDatabaseConnectionAndCache, managePincodeSubscription, pincodeRegExp } from './subscriptions/pincode';
-import { aurangabad, checkDistrict, initDistricts, manageDistrictSubscription } from './subscriptions/district';
+import { aurangabad, checkDistrict, initDistricts, manageDistrictSubscription, updateDistrictsList } from './subscriptions/district';
 
 require('dotenv').config({ path: './config/.env.uat' });
 
 const client = new Client()
+const actionsRegExp: RegExp = new RegExp('^[@+#-]$')
 
 client.login(process.env.BOT_TOKEN)
 
@@ -20,7 +21,7 @@ client.on('message', (message) => {
     const textChannel: TextChannel = <TextChannel>message.channel
     if (textChannel.name === process.env.SUBSCRIPTIONS && message.author.username !== process.env.BOT_NAME) {
         manageSubscription(message)
-    } else if(textChannel.name === process.env.GENERAL && message.author.username !== process.env.BOT_NAME) {
+    } else if (textChannel.name === process.env.GENERAL && message.author.username !== process.env.BOT_NAME) {
         replyIfUserTriesToSubscribeInGeneral(message)
     }
 });
@@ -39,15 +40,19 @@ export async function manageSubscription(message: Message) {
     const subscription: string = message.content
     if (!subscription.startsWith("+") && !subscription.startsWith("-")) {
         if (subscription.trim().toLowerCase().startsWith(aurangabad)) {
-            message.reply(`To subscribe to alerts please enter district name/pincode starting with +\nFor example:\n+Aurangabad, Maharashtra\n+Aurangabad, Bihar\nTo be removed from this district's subscription, please enter district name/pincode starting with -\nFor example:\n-Aurangabad, Maharashtra\n-Aurangabad, Bihar`)
+            message.reply(`To subscribe to alerts please enter district name starting with +\nFor example:\n+Aurangabad, Maharashtra\n+Aurangabad, Bihar\nTo be removed from this district's subscription, please enter district name starting with -\nFor example:\n-Aurangabad, Maharashtra\n-Aurangabad, Bihar`)
         } else {
-            message.reply(`To subscribe to alerts please enter district name/pincode starting with + for example +${subscription}\nTo be removed from this subscription, please enter district name/pincode starting with - for example -${subscription}`)
+            // TODO: Uncomment the below line to enable pincode based subscriptions and remove the line after that
+            // message.reply(`To subscribe to alerts please enter district name/pincode starting with + for example +${subscription}\nTo be removed from this subscription, please enter district name/pincode starting with - for example -${subscription}`)
+            message.reply(`To subscribe to alerts please enter district name starting with + for example +${subscription}\nTo be removed from this subscription, please enter district name starting with - for example -${subscription}`)
         }
     } else {
         const subscriptionValue: string = subscription.substring(1)
         const action: Action = <Action>subscription.substring(0, 1)
         if (pincodeRegExp.test(subscription.substring(1))) {
-            managePincodeSubscription(message, subscriptionValue.trim(), action)
+            // TODO: Uncomment the below line to enable pincode based subscriptions and remove the bot's reply
+            // managePincodeSubscription(message, subscriptionValue.trim(), action)
+            message.reply(`The pincode feature is not available yet, but the admins are working on it!`)
         } else {
             manageDistrictSubscription(message, subscriptionValue.trim(), action)
         }
@@ -56,19 +61,46 @@ export async function manageSubscription(message: Message) {
 
 function replyIfUserTriesToSubscribeInGeneral(message: Message) {
     const subscription: string = message.content
-    if(subscription.startsWith("+") || subscription.startsWith("-")) {
-        const action: Action = <Action> subscription.substring(0, 1)
-        let intendedAction: string = "subscribe"
-        if(action == "-") {
-            intendedAction = "unsubscribe"
+    const action: string = subscription.substring(0, 1)
+
+    const possibleDistrict: string = subscription
+    const possiblePincode: string = subscription
+    const possibleDistrictWithAction: string = subscription.substring(1)?.trim()
+    const possiblePincodeWithAction: string = subscription.substring(1)?.trim()
+    let messageReply: string = undefined
+
+    if ((possiblePincode.length == 6 && pincodeRegExp.test(possiblePincode))
+        || (possiblePincodeWithAction.length == 6 && pincodeRegExp.test(possiblePincodeWithAction))) {
+        if (actionsRegExp.test(action)) {
+            messageReply = buildReply(action, possibleDistrictWithAction, "pincode")
+        } else {
+            messageReply = buildReply("", possiblePincode, "pincode")
         }
-        const possibleDistrict: string = subscription.substring(1)
-        const possiblePincode: string = subscription.substring(1)
-        if(possiblePincode.length == 6 && pincodeRegExp.test(possiblePincode)) {
-            message.reply(`hi, if you're trying to ${intendedAction} to the pincode ${possiblePincode}, please do so on the <#${subscriptionsChannelID}> channel by typing \`${action}${possiblePincode}\``)
-        } else if(checkDistrict(possibleDistrict)) {
-            message.reply(`hi, if you're trying to ${intendedAction} to the district ${possibleDistrict}, please do so on the <#${subscriptionsChannelID}> channel by typing \`${action}${possibleDistrict}\``)
+    } else if (checkDistrict(possibleDistrict) || checkDistrict(possibleDistrictWithAction)) {
+        if (actionsRegExp.test(action)) {
+            messageReply = buildReply(action, possibleDistrictWithAction, "district")
+        } else {
+            messageReply = buildReply("", possibleDistrict, "district")
         }
+    }
+
+    if(messageReply) {
+        message.reply(messageReply)
     }
 }
 
+function buildReply(action: string, subscription: string, subscriptionType: SubscriptionType): string {
+    let intendedAction: string = "subscribe/unsubscribe"
+    if (action === "+") {
+        intendedAction = "subscribe"
+    } else if (action === "-") {
+        intendedAction = "unsubscribe"
+    }
+    let messageReply: string = `hi, if you're trying to ${intendedAction} to the ${subscriptionType} ${subscription}, please do so on the <#${subscriptionsChannelID}> channel`
+    if (action == "+" || action == "-") {
+        messageReply += ` by typing \`${action}${subscription}\``
+    } else {
+        messageReply += ` by  typing \`+${subscription}\` to subscribe or \`-${subscription}\` to unsubscribe`
+    }
+    return messageReply
+}

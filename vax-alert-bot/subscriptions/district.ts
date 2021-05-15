@@ -1,7 +1,7 @@
 import axios from "axios";
-import { Message, TextChannel } from "discord.js";
+import { Collection, GuildChannel, Message, TextChannel } from "discord.js";
 import { State, District, Action } from "../config/types";
-import { checkChannelAndGetID, createChannel, setNewRoleToChannel, newDistrictsChannelID, aurangabadBiharChannelID, aurangabadMaharashtraChannelID, addRoleToChannel } from "../discord/channelHandler";
+import { checkChannelAndGetID, createChannel, setNewRoleToChannel, newDistrictsChannelID, aurangabadBiharChannelID, aurangabadMaharashtraChannelID, addRoleToChannel, districtsListChannelID, errorAlertsChannelID } from "../discord/channelHandler";
 import { checkRoleAndGetID, createRole, adminsID, checkRoleOnUser, setRoleToMember, checkAndRemoveRole, aurangabadBiharRoleID, aurangabadMaharashtraRoleID } from "../discord/roleHandler";
 
 
@@ -65,7 +65,11 @@ async function addNewDistrictWithRole(message: Message, district: District, chan
     const newRoleMessage: string = newRoleValues[0]
     const roleID: string = newRoleValues[1]
 
-    if (newChannelMessage !== undefined && newRoleMessage !== undefined) {
+    if (newChannelMessage) {
+        updateDistrictsList(message, district.district_name)
+    }
+
+    if (newChannelMessage && newRoleMessage) {
         channelID = await checkChannelAndGetID(districtName.toLowerCase())
         const roleAdded: boolean = await setNewRoleToChannel(message, channelID, roleID)
 
@@ -77,10 +81,10 @@ async function addNewDistrictWithRole(message: Message, district: District, chan
         } else {
             message.reply(`an error occurred while assigning role <@&${roleID}> to channel <#${channelID}>, don't worry, the admins will fix it soon!`);
         }
-    } else if (newChannelMessage === undefined && newRoleMessage !== undefined) {
+    } else if (!newChannelMessage && newRoleMessage) {
         const roleID: string = checkRoleAndGetID(districtName.toLowerCase())
         message.reply(`successfully assigned role <@&${roleID}> but couldn't create an alerts channel, don't worry, the admins will fix this soon!`)
-    } else if (newChannelMessage !== undefined && newRoleMessage === undefined) {
+    } else if (newChannelMessage && !newRoleMessage) {
         message.reply(`successfully subscribed to channel <#${channelID}> but couldn't assign you to a role, don't worry, the admins will fix this soon!`)
     } else {
         message.reply(`district subscription failed, don't worry, the admins will contact you soon!`)
@@ -139,4 +143,45 @@ async function manageAurangabadSubscription(message: Message, districtName: stri
             checkAndRemoveRole(message, "aurangabad-mh")
         }
     }
+}
+
+export async function updateDistrictsList(message: Message, districtName: string) {
+    const channels: Collection<string, GuildChannel> = message.guild.channels.cache
+    try {
+        const messages: Collection<string, Message> = await (<TextChannel>channels
+            .find(channel => channel.id === districtsListChannelID))
+            .messages.fetch({ limit: 1 })
+        const districtsList: string = messages.first().content
+
+        try {
+            await (<TextChannel>channels.find(channel => channel.id === districtsListChannelID)).lastMessage.delete();
+
+            const totalDistricts: number = districtsList.split("\n")
+                .filter(listLine => listLine.startsWith("Total districts"))
+                .map(totalDistrictsLine => totalDistrictsLine
+                    .substring(totalDistrictsLine.lastIndexOf(" " + 1, totalDistrictsLine.length)))
+                .map(Number)[0] + 1;
+
+            const districtsArray: string[] = districtsList.split("\n")
+            const districtsListMessage = districtsArray.slice(0, districtsArray.findIndex(district => district.length == 0)).join("\n")
+                + `\n${districtName}`
+                + `\n\n\n**Total districts:     ${totalDistricts}**`
+                + `\n\n*This list will be updated as and when new districts are added*`;
+
+            (<TextChannel>channels
+                .get(districtsListChannelID))
+                .send(districtsListMessage)
+
+        } catch (error) {
+            (<TextChannel>channels
+                .get(errorAlertsChannelID))
+                .send(`an error occurred while updating districts list for district ${districtName}, please update it manually - ${error}`)
+        }
+
+    } catch (error) {
+        (<TextChannel>channels
+            .get(errorAlertsChannelID))
+            .send(`an error occurred while updating districts list for district ${districtName}, please update it manually - ${error}`)
+    }
+
 }

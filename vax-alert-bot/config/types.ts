@@ -10,6 +10,8 @@ export interface District {
 
 export type Action = "+" | "-"
 
+export type SubscriptionType = "district" | "pincode"
+
 export interface UserPincode {
     id: string
     user_id: string
