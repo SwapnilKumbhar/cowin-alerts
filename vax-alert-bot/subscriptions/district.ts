@@ -157,9 +157,9 @@ export async function updateDistrictsList(message: Message, districtName: string
             await (<TextChannel>channels.find(channel => channel.id === districtsListChannelID)).lastMessage.delete();
 
             const totalDistricts: number = districtsList.split("\n")
-                .filter(listLine => listLine.startsWith("Total districts"))
+                .filter(listLine => listLine.startsWith("**Total districts"))
                 .map(totalDistrictsLine => totalDistrictsLine
-                    .substring(totalDistrictsLine.lastIndexOf(" " + 1, totalDistrictsLine.length)))
+                    .substring(totalDistrictsLine.lastIndexOf(" " + 1), totalDistrictsLine.lastIndexOf("*") - 1))
                 .map(Number)[0] + 1;
 
             const districtsArray: string[] = districtsList.split("\n")
