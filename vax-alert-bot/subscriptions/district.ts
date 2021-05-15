@@ -33,7 +33,7 @@ export async function initDistricts() {
 
 export async function manageDistrictSubscription(message: Message, districtName: string, action: Action) {
     const district: District = checkDistrict(districtName)
-    if (district === null && !districtName.toLowerCase().startsWith(aurangabad)) {
+    if (!district && !districtName.toLowerCase().startsWith(aurangabad)) {
         message.reply(`no such district:  ${districtName}`)
     } else if (districtName.toLowerCase().startsWith(aurangabad)) {
         manageAurangabadSubscription(message, districtName.toLowerCase(), action)
