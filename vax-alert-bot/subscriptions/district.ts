@@ -1,14 +1,15 @@
 import axios from "axios";
 import { Collection, GuildChannel, Message, TextChannel } from "discord.js";
 import { State, District, Action } from "../config/types";
-import { checkChannelAndGetID, createChannel, setNewRoleToChannel, newDistrictsChannelID, aurangabadBiharChannelID, aurangabadMaharashtraChannelID, addRoleToChannel, districtsListChannelID, errorAlertsChannelID } from "../discord/channelHandler";
-import { checkRoleAndGetID, createRole, adminsID, checkRoleOnUser, setRoleToMember, checkAndRemoveRole, aurangabadBiharRoleID, aurangabadMaharashtraRoleID } from "../discord/roleHandler";
+import { checkChannelAndGetID, createChannel, setNewRoleToChannel, newDistrictsChannelID, aurangabadBiharChannelID, aurangabadMaharashtraChannelID, addRoleToChannel, districtsListChannelID, errorAlertsChannelID, bilaspurChhattisgarhChannelID, bilaspurHPChannelID } from "../discord/channelHandler";
+import { checkRoleAndGetID, createRole, adminsID, checkRoleOnUser, setRoleToMember, checkAndRemoveRole, aurangabadBiharRoleID, aurangabadMaharashtraRoleID, bilaspurChhattisgarhRoleID, bilaspurHPRoleID } from "../discord/roleHandler";
 
 
 /**************************** Initializing data ****************************/
 
 export let districts: District[] = []
 export const aurangabad: string = "aurangabad"
+export const bilaspur: string = "bilaspur"
 
 export async function initDistricts() {
     console.log("Getting districts lists from Cowin API...")
@@ -33,10 +34,12 @@ export async function initDistricts() {
 
 export async function manageDistrictSubscription(message: Message, districtName: string, action: Action) {
     const district: District = checkDistrict(districtName)
-    if (!district && !districtName.toLowerCase().startsWith(aurangabad)) {
+    if (!district && !districtName.toLowerCase().startsWith(aurangabad) && !districtName.toLowerCase().startsWith(bilaspur)) {
         message.reply(`no such district:  ${districtName}`)
     } else if (districtName.toLowerCase().startsWith(aurangabad)) {
         manageAurangabadSubscription(message, districtName.toLowerCase(), action)
+    } else if (districtName.toLowerCase().startsWith(bilaspur)) {
+        manageBilaspurSubscription(message, districtName.toLowerCase(), action)
     } else {
         if (action === "+") {
             let channelID: string = await checkChannelAndGetID(districtName.toLowerCase())
@@ -141,6 +144,34 @@ async function manageAurangabadSubscription(message: Message, districtName: stri
             }
         } else if (action == "-") {
             checkAndRemoveRole(message, "aurangabad-mh")
+        }
+    }
+}
+
+async function manageBilaspurSubscription(message: Message, districtName: string, action: Action) {
+    let state: string = districtName.split(", ")[1]
+    if (state === undefined) {
+        state = districtName.split(",")[1]
+    }
+    if (state === undefined || (state.toLowerCase().trim() !== "chhattisgarh" && state.toLowerCase().trim() !== "himachal pradesh")) {
+        message.reply(`please enter valid state name along with Bilaspur. For example:\n${action}Bilaspur, Chhattisgarh\n${action}Bilaspur, Himachal Pradesh`)
+    } else if (state.toLowerCase().trim() === "chhattisgarh") {
+        if (action == "+") {
+            const roleSet: boolean = await setRoleToMember(bilaspurChhattisgarhRoleID, message, districtName)
+            if (roleSet) {
+                message.reply(`successfully subscribed to <#${bilaspurChhattisgarhChannelID}> and assigned role <@&${bilaspurChhattisgarhRoleID}>`)
+            }
+        } else if (action == "-") {
+            checkAndRemoveRole(message, "bilaspur")
+        }
+    } else if (state.toLowerCase().trim() == "himachal pradesh") {
+        if (action == "+") {
+            const roleSet: boolean = await setRoleToMember(bilaspurHPRoleID, message, districtName)
+            if (roleSet) {
+                message.reply(`successfully subscribed to <#${bilaspurHPChannelID}> and assigned role <@&${bilaspurHPRoleID}>`)
+            }
+        } else if (action == "-") {
+            checkAndRemoveRole(message, "bilaspur-hp")
         }
     }
 }

@@ -2,8 +2,8 @@ import { Client, Guild, Message, TextChannel } from 'discord.js';
 import { Action, SubscriptionType } from './config/types';
 import { loadChannels, subscriptionsChannelID } from './discord/channelHandler';
 import { loadRoles } from './discord/roleHandler';
-import { loadPincodesPerDistrict, loadDatabaseConnectionAndCache, managePincodeSubscription, pincodeRegExp } from './subscriptions/pincode';
-import { aurangabad, checkDistrict, initDistricts, manageDistrictSubscription, updateDistrictsList } from './subscriptions/district';
+import { loadPincodesPerDistrict, loadDatabaseConnectionAndCache, pincodeRegExp } from './subscriptions/pincode';
+import { aurangabad, bilaspur, checkDistrict, initDistricts, manageDistrictSubscription } from './subscriptions/district';
 
 require('dotenv').config({ path: './config/.env.uat' });
 
@@ -41,6 +41,8 @@ export async function manageSubscription(message: Message) {
     if (!subscription.startsWith("+") && !subscription.startsWith("-")) {
         if (subscription.trim().toLowerCase().startsWith(aurangabad)) {
             message.reply(`To subscribe to alerts please enter district name starting with +\nFor example:\n+Aurangabad, Maharashtra\n+Aurangabad, Bihar\nTo be removed from this district's subscription, please enter district name starting with -\nFor example:\n-Aurangabad, Maharashtra\n-Aurangabad, Bihar`)
+        } else if (subscription.trim().toLowerCase().startsWith(bilaspur)) {
+            message.reply(`To subscribe to alerts please enter district name starting with +\nFor example:\n+Bilaspur, Chhattisgarh\n+Bilaspur, Himachal Pradesh\nTo be removed from this district's subscription, please enter district name starting with -\nFor example:\n-Bilaspur, Chhattisgarh\n-Bilaspur, Himachal Pradesh`)
         } else {
             // TODO: Uncomment the below line to enable pincode based subscriptions and remove the line after that
             // message.reply(`To subscribe to alerts please enter district name/pincode starting with + for example +${subscription}\nTo be removed from this subscription, please enter district name/pincode starting with - for example -${subscription}`)
