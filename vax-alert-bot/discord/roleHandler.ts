@@ -10,6 +10,8 @@ let rolesMap: Map<string, Role> = new Map<string, Role>()
 export const everyoneRoleID: string = "838421930406445086"
 export const aurangabadBiharRoleID: string = "839388376477335583"
 export const aurangabadMaharashtraRoleID: string = "840549022598037515"
+export const bilaspurChhattisgarhRoleID: string = "842375587477848064"
+export const bilaspurHPRoleID: string = "844194200798101535"
 let memberRoleID: string
 
 export const adminsID: string = "838446465566244914"

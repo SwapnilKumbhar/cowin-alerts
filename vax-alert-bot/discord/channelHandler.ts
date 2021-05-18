@@ -13,6 +13,8 @@ export let generalChannelID: string = ""
 export let subscriptionsChannelID: string = ""
 export let aurangabadBiharChannelID: string = ""
 export let aurangabadMaharashtraChannelID: string = ""
+export let bilaspurChhattisgarhChannelID: string = ""
+export let bilaspurHPChannelID: string = ""
 let currentAlertsCategoryID: string = ""
 let alertCategories: string[] = []
 
@@ -46,6 +48,12 @@ export function loadChannels(server: Guild) {
                 break
             case "aurangabad-mh-alerts":
                 aurangabadMaharashtraChannelID = channel.id
+                break
+            case "bilaspur-alerts":
+                bilaspurChhattisgarhChannelID = channel.id
+                break
+            case "bilaspur-hp-alerts":
+                bilaspurHPChannelID = channel.id
                 break
         }
         if (channel.type === "category" && alertCategories.includes(channel.name)) {
