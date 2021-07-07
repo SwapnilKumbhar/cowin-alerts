@@ -18,6 +18,7 @@ __pycache__
 
 # Virtual Env
 venv/
+.venv
 
 # Anything that we are using for tests
 test*

@@ -6,11 +6,13 @@ core:
       calendarByDistrict: "/api/v2/appointment/sessions/calendarByDistrict"
   timeout: 20             # How often should we query
   discord:
-    errors:
+    errors: # Channel to notify in case of errors
       hook: "https://discord.com/api/webhooks/..."
       notify:
         - "<@&456456546456456456>"
         - "<@&123123123123123123>"
+  database:
+    path: "/path/to/sqlite/database" # Path to database that will store role information
 
 districts: # One block per city, city name is the key
   mumbai:
