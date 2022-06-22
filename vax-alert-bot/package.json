@@ -22,7 +22,7 @@
     "discord.js": "^12.5.3",
     "dotenv": "^8.2.0",
     "request": "^2.88.2",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^5.0.3"
   },
   "devDependencies": {
     "ts-node": "^9.1.1"
